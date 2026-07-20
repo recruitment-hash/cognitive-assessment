@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognitive Ability Assessment</title>
+
+<!-- Fonts: IBM Plex Sans + IBM Plex Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<!-- Bootstrap 5 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Chart.js for Radar Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Supabase Client Library via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --navy-900: #0b2540; --navy-800: #0f2f52; --navy-700: #16406b; --navy-600: #1f5288; --navy-500: #2c6bb0; --navy-100: #e6edf5;
+  --white: #ffffff; --gray-50: #f6f7f9; --gray-100: #eef0f3; --gray-200: #e2e5ea; --gray-300: #cdd2d9; --gray-500: #7c8798; --gray-700: #46505f; --ink: #1a2432;
+  --status-answered: #1e7a4c; --status-answered-bg: #e7f5ee; --status-current: var(--navy-700);
+  --font-ui: 'IBM Plex Sans', -apple-system, sans-serif; --font-data: 'IBM Plex Mono', monospace;
+  --radius: 10px; --radius-sm: 6px; --shadow-card: 0 1px 2px rgba(11, 37, 64, 0.06), 0 8px 24px rgba(11, 37, 64, 0.06);
+}
+* { box-sizing: border-box; }
+body { font-family: var(--font-ui); background: var(--gray-50); color: var(--ink); margin: 0; }
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.view { display: none; flex: 1; }
+.view.active { display: flex; flex-direction: column; }
+.id-bar { background: var(--navy-900); color: var(--white); padding: 14px 28px; display: flex; align-items: center; justify-content: flex-end; border-bottom: 3px solid var(--navy-600); }
+.id-chip { font-family: var(--font-data); font-size: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); padding: 6px 14px; border-radius: 999px; color: var(--navy-100); cursor: pointer; text-decoration: none; transition: background 0.2s; }
+.id-chip:hover { background: rgba(255,255,255,0.2); color: var(--white); }
+.landing { flex: 1; display: flex; justify-content: center; padding: 48px 20px 64px; }
+.landing__grid { width: 100%; max-width: 980px; display: grid; gap: 28px; }
+.landing__hero { background: var(--navy-900); color: var(--white); border-radius: var(--radius); padding: 40px; }
+.landing__hero h1 { font-size: 34px; font-weight: 650; margin: 0 0 14px; }
+.landing__hero p { color: var(--navy-100); line-height: 1.65; max-width: 640px; white-space: pre-line; }
+.landing__stats { display: flex; gap: 26px; margin-top: 26px; }
+.landing__stat b { display: block; font-family: var(--font-data); font-size: 20px; }
+.landing__stat span { font-size: 11.5px; color: var(--navy-100); text-transform: uppercase; }
+.card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.candidate-card { padding: 32px 36px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--navy-800); margin-bottom: 6px; }
+.field input { width: 100%; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; background: var(--gray-50); }
+.field input:focus { outline: none; border-color: var(--navy-600); background: var(--white); }
+.btn { font-family: var(--font-ui); font-weight: 600; font-size: 14.5px; border-radius: var(--radius-sm); padding: 12px 22px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-primary { background: var(--navy-900); color: var(--white); }
+.btn-primary:hover { background: var(--navy-700); }
+.btn-outline { background: var(--white); color: var(--navy-900); border: 1.5px solid var(--gray-300); }
+.btn-block { width: 100%; }
+
+/* Assessment Workspace */
+.workspace { flex: 1; display: grid; grid-template-columns: 290px 1fr; background: var(--white); }
+.sidebar { background: var(--gray-50); border-right: 1px solid var(--gray-200); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+.timer-box { background: var(--navy-900); color: var(--white); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+.timer-box__label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--navy-100); }
+.timer-box__val { font-family: var(--font-data); font-size: 28px; font-weight: 600; margin-top: 4px; }
+.grid-nav__title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--gray-700); margin-bottom: 10px; }
+.grid-nav__items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+.q-btn { width: 100%; aspect-ratio: 1; border: 1px solid var(--gray-300); background: var(--white); border-radius: 4px; font-family: var(--font-data); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.q-btn.answered { background: var(--status-answered-bg); color: var(--status-answered); border-color: #b7e1cd; }
+.q-btn.current { border-color: var(--navy-700); box-shadow: 0 0 0 2px var(--navy-500); }
+.main-question { padding: 40px; display: flex; flex-direction: column; justify-content: space-between; max-width: 820px; }
+.q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.q-meta { font-family: var(--font-data); font-size: 12px; color: var(--gray-500); text-transform: uppercase; }
+.q-title { font-size: 18px; font-weight: 650; color: var(--navy-900); line-height: 1.5; margin-bottom: 20px; white-space: pre-line; }
+
+.question-image-container { margin-bottom: 24px; text-align: center; background: var(--gray-50); border: 1.5px dashed var(--gray-300); border-radius: var(--radius-sm); padding: 16px; }
+.question-image-container img { max-width: 100%; height: auto; border-radius: 4px; max-height: 240px; object-fit: contain; }
+
+.options-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+.option-label { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; background: var(--white); }
+.option-label:hover { border-color: var(--navy-500); background: var(--gray-50); }
+.option-label input { accent-color: var(--navy-900); width: 18px; height: 18px; }
+.option-text { font-size: 15px; color: var(--ink); }
+.q-actions { display: flex; justify-content: space-between; border-top: 1px solid var(--gray-200); padding-top: 24px; }
+
+/* Admin Table */
+.admin-table-wrapper { width: 100%; max-width: 1000px; margin: 0 auto; background: var(--white); padding: 32px; border-radius: var(--radius); border: 1px solid var(--gray-200); box-shadow: var(--shadow-card); }
+.table-responsive { width: 100%; overflow-x: auto; margin-top: 16px; }
+.table { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; }
+.table th, .table td { padding: 12px 14px; border-bottom: 1px solid var(--gray-200); }
+.table th { background: var(--gray-50); color: var(--navy-900); font-weight: 650; }
+
+@media print {
+  body { background: white !important; }
+  .id-bar, .btn, header { display: none !important; }
+  .view { display: none !important; }
+  #view-results.active { display: block !important; }
+  .card, .admin-table-wrapper { border: none !important; box-shadow: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header class="id-bar">
+    <div class="id-bar__right">
+      <button onclick="App.openAdminLogin()" class="id-chip">🔒 Login Admin</button>
+    </div>
+  </header>
+
+  <!-- VIEW: LANDING -->
+  <main id="view-landing" class="view active">
+    <div class="landing">
+      <div class="landing__grid">
+        <section class="landing__hero">
+          <h1>Cognitive Ability Assessment</h1>
+          <p>Tes ini berisi 50 pertanyaan yang secara bertahap menjadi semakin sulit. Anda tidak mungkin dapat menyelesaikan semua pertanyaan, tetapi selesaikan semampu Anda. 
+
+Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. Kerjakan dengan teliti, namun jangan menghabiskan waktu lama pada setiap pertanyaan atau lewati pertanyaan itu.</p>
+          <div class="landing__stats">
+            <div class="landing__stat"><b>50</b><span>Soal</span></div>
+            <div class="landing__stat"><b>12 Menit</b><span>Batas Waktu</span></div>
+          </div>
+        </section>
+
+        <section class="card candidate-card">
+          <h2>Informasi Kandidat</h2>
+          <form id="candidateForm">
+            <div class="form-row">
+              <div class="field"><label>Nama Anda</label><input type="text" id="fieldName" required></div>
+              <div class="field"><label>Jabatan / Melamar Untuk</label><input type="text" id="fieldPosition" required></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Departemen</label><input type="text" id="fieldDepartment" required></div>
+              <div class="field"><label>Email</label><input type="email" id="fieldEmail" required></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Mulai Tes Sekarang</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW: ASSESSMENT WORKSPACE -->
+  <section id="view-assessment" class="view">
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="timer-box">
+          <div class="timer-box__label">Sisa Waktu</div>
+          <div id="timerDisplay" class="timer-box__val">12:00</div>
+        </div>
+        <div class="grid-nav">
+          <div class="grid-nav__title">Navigasi Soal</div>
+          <div id="questionGrid" class="grid-nav__items"></div>
+        </div>
+      </aside>
+
+      <main class="main-question">
+        <div>
+          <div class="q-header">
+            <span id="qCategoryMeta" class="q-meta">Kognitif</span>
+            <span id="qCounterMeta" class="q-meta">Soal 1 dari 50</span>
+          </div>
+          <h2 id="qTextTitle" class="q-title">Memuat soal...</h2>
+          
+          <div id="qImageWrapper" class="question-image-container" style="display: none;">
+            <img id="qImageElement" src="" alt="Ilustrasi Soal">
+          </div>
+
+          <div id="optionsContainer" class="options-list"></div>
+        </div>
+        <div class="q-actions">
+          <button id="prevBtn" class="btn btn-outline" onclick="App.prevQuestion()">Sebelumnya</button>
+          <button id="nextBtn" class="btn btn-primary" onclick="App.nextQuestion()">Selanjutnya</button>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- VIEW: CANDIDATE FINISHED -->
+  <section id="view-candidate-finished" class="view">
+    <div class="landing" style="align-items:center;">
+      <div class="card candidate-card" style="width: 100%; max-width: 550px; text-align: center; padding: 48px;">
+        <div style="font-size: 54px; margin-bottom: 16px;">✅</div>
+        <h2 style="color:var(--navy-900); margin-bottom: 12px;">Tes Telah Selesai</h2>
+        <p style="color: var(--gray-700); line-height: 1.6; margin-bottom: 24px;">
+          Terima kasih telah berpartisipasi. Jawaban Anda telah berhasil direkam ke dalam sistem rekrutmen. Tim HRD kami akan segera meninjau hasil Anda. Anda dapat menutup halaman ini.
+        </p>
+        <button onclick="location.reload()" class="btn btn-outline btn-block">Selesai / Keluar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: ADMIN DASHBOARD -->
+  <section id="view-admin-dashboard" class="view">
+    <div class="landing" style="align-items:flex-start; padding-top: 32px;">
+      <div class="admin-table-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gray-200); padding-bottom: 16px; margin-bottom: 20px;">
+          <div>
+            <h3 style="color:var(--navy-900); margin: 0 0 4px 0;">Dasbor Admin HRD</h3>
+            <p style="font-size: 13px; color: var(--gray-500); margin: 0;">Rekapitulasi Hasil Tes Seluruh Kandidat</p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button onclick="App.loadAdminData()" class="btn btn-outline" style="padding: 8px 14px; font-size: 13px;">Refresh Data</button>
+            <button onclick="location.reload()" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;">Keluar Admin</button>
+          </div>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Nama Kandidat</th>
+                <th>Posisi / Dept</th>
+                <th>Email</th>
+                <th>Raw Score</th>
+                <th>Estimated IQ</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody">
+              <tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Memuat data dari database...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: ADMIN DETAIL LAPORAN INDIVIDUAL (RESULT PAGE) -->
+  <section id="view-results" class="view">
+    <div class="landing" style="align-items:center;">
+      <div class="card candidate-card" style="width: 100%; max-width: 700px;">
+        <div style="text-align: center; border-bottom: 2px solid var(--gray-200); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="color:var(--navy-900); margin-bottom: 4px; text-align: left;">Detail Hasil Kandidat</h3>
+            <p style="font-size: 13px; color: var(--gray-500); margin: 0; text-align: left;">Laporan Penilaian Kognitif Resmi</p>
+          </div>
+          <button onclick="App.showAdminDashboard()" class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">← Kembali ke Tabel</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; font-size: 14px;">
+          <div><b>Candidate Name:</b> <span id="resName">-</span></div>
+          <div><b>Assessment Date:</b> <span id="resDate">-</span></div>
+          <div><b>Time Used:</b> <span id="resTimeUsed">-</span></div>
+          <div><b>Position / Dept:</b> <span id="resPositionDept">-</span></div>
+          <div><b>Email:</b> <span id="resEmail">-</span></div>
+        </div>
+
+        <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 20px; margin-bottom: 20px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 600;">Correct Answers</div>
+              <div id="resCorrect" style="font-family: var(--font-data); font-size: 20px; font-weight: bold; color: var(--navy-900); margin-top: 4px;">0</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 600;">Incorrect/Unanswered</div>
+              <div id="resIncorrect" style="font-family: var(--font-data); font-size: 20px; font-weight: bold; color: var(--navy-900); margin-top: 4px;">50</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 600;">Raw Score</div>
+              <div id="resRawScore" style="font-family: var(--font-data); font-size: 20px; font-weight: bold; color: var(--navy-900); margin-top: 4px;">0 / 50</div>
+            </div>
+          </div>
+          
+          <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 600;">Estimated IQ</div>
+              <div id="resIqVal" style="font-family: var(--font-data); font-size: 28px; font-weight: bold; color: var(--navy-900); margin-top: 4px;">59</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 600;">Interpretation</div>
+              <div id="resInterpretation" style="font-size: 15px; font-weight: 600; color: var(--navy-700); margin-top: 8px;">Very Low</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; background: var(--white); border: 1px solid var(--gray-200); padding: 12px 16px; border-radius: var(--radius-sm);">
+          <div style="font-weight: 600; font-size: 14px;">Pass / Fail Status (Editable Threshold):</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 13px; color: var(--gray-700);">Min Raw Score:</label>
+            <input type="number" id="thresholdInput" value="25" min="0" max="50" style="width: 70px; padding: 4px 8px; border: 1.5px solid var(--gray-300); border-radius: 4px; font-family: var(--font-data);" onchange="App.updatePassFailStatus()">
+            <span id="resPassFailStatus" style="padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">-</span>
+          </div>
+        </div>
+
+        <!-- Performance Summary & Radar Chart -->
+        <div style="margin-bottom: 24px;">
+          <h4 style="font-size: 15px; font-weight: 650; color: var(--navy-900); margin-bottom: 12px;">Performance Summary & Radar Chart of Cognitive Domains</h4>
+          <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 20px; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100%; max-width: 380px; height: 320px;">
+              <canvas id="radarChartCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button onclick="window.print()" class="btn btn-primary btn-block">Print Report</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ==========================================
+// KONFIGURASI SUPABASE ANDA
+// ==========================================
+const SUPABASE_URL = "https://xatoqksgmoyamabxqoda.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhdG9xa3NnbW95YW1hYnhxb2RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0OTQ3NjksImV4cCI6MjEwMDA3MDc2OX0.KYbO34RV7H6JRfrqatrP9CYHFvF1bkPPpXEv4eM7-7Y";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const iqLookupTable = {
+  0: 59, 1: 59, 2: 61, 3: 64, 4: 67, 5: 69, 6: 71, 7: 73, 8: 75, 9: 78, 10: 80,
+  11: 82, 12: 84, 13: 86, 14: 88, 15: 90, 16: 92, 17: 94, 18: 96, 19: 98, 20: 100,
+  21: 102, 22: 104, 23: 106, 24: 108, 25: 110, 26: 112, 27: 114, 28: 116, 29: 118, 30: 120,
+  31: 122, 32: 124, 33: 126, 34: 128, 35: 130, 36: 132, 37: 134, 38: 136, 39: 138, 40: 140,
+  41: 142, 42: 144, 43: 146, 44: 148, 45: 150, 46: 152, 47: 154, 48: 156, 49: 158, 50: 160
+};
+
+function getInterpretation(iq) {
+  if (iq < 70) return "Very Low";
+  if (iq <= 79) return "Borderline";
+  if (iq <= 89) return "Low Average";
+  if (iq <= 109) return "Average";
+  if (iq <= 119) return "High Average";
+  if (iq <= 129) return "Superior";
+  if (iq <= 139) return "Very Superior";
+  return "Exceptionally High";
+}
+
+const questionsData = [
+  { id: 1, domain: "Penalaran Verbal", text: "Bulan lalu pada awal tahun ini adalah:", options: ["Januari", "Maret", "Juli", "Desember", "Oktober"], answer: 3 },
+  { id: 2, domain: "Penalaran Verbal", text: "MENANGKAP adalah lawan kata dari:", options: ["meletakkan", "membebaskan", "beresiko", "berusaha", "turun tingkat"], answer: 1 },
+  { id: 3, domain: "Analogi / Klasifikasi", text: "Sebagian besar hal dibawah ini serupa satu sama lain. Manakah salah satu diantaranya yang kurang serupa dengan yang lain?", options: ["Januari", "Augustus", "Rabu", "Oktober", "Desember"], answer: 2 },
+  { id: 4, domain: "Penalaran Verbal", text: "Apakah RSVP berarti 'jawablah yang tidak perlu'?", options: ["YA", "TIDAK"], answer: 1 },
+  { id: 5, domain: "Klasifikasi Kata", text: "Dalam kelompok kata berikut, manakah kata yang berbeda dari kata yang lain: pasukan, liga, berpartisipasi, pak, kelompok", options: ["pasukan", "liga", "berpartisipasi", "pak", "kelompok"], answer: 2 },
+  { id: 6, domain: "Penalaran Verbal", text: "BIASA adalah lawan kata dari:", options: ["jarang", "terbiasa", "tetap", "berhenti", "selalu"], answer: 0 },
+  { id: 7, domain: "Logika Spasial", text: "Gambar manakah yang terbuat dari dua gambar di dalam tanda kurung?", image: "https://i.postimg.cc/QtPW53RN/soal7.jpg", options: ["Opsi A", "Opsi B", "Opsi C", "Opsi D"], answer: 0 },
+  { id: 8, domain: "Deret Angka", text: "Perhatikan urutan angka berikut. Angka berapa yang selanjutnya muncul?\n8, 4, 2, 1, ½, ¼", options: ["0", "0.5 (1/8 atau 1/16 dsb)", "1", "-1"], answer: 1 },
+  { id: 9, domain: "Sinonim / Antonim", text: "Klien dan Pelanggan. Apakah kata-kata ini: 1. memiliki arti yang sama, 2. memiliki arti berlawanan, 3. tidak memiliki arti sama atau berlainan?", options: ["Memiliki arti yang sama", "Memiliki arti berlawanan", "Tidak memiliki arti sama atau berlainan"], answer: 0 },
+  { id: 10, domain: "Penalaran Logika", text: "Manakah kata berikut ini yang berhubungan dengan aroma saat gigi mengunyah?", options: ["manis", "bau tak sedap", "bau wangi", "hidung", "bersih"], answer: 3 },
+  { id: 11, domain: "Penalaran Verbal", text: "MUSIM GUGUR adalah lawan dari:", options: ["liburan", "musim panas", "musim semi", "musim dingin", "musim gugur"], answer: 2 },
+  { id: 12, domain: "Aritmatika", text: "Sebuah pesawat terbang 300 kaki dalam ½ detik. Pada kecepatan yang sama berapa kaki ia terbang dalam 10 detik?", options: ["1200 kaki", "1500 kaki", "1800 kaki", "6000 kaki"], answer: 3 },
+  { id: 13, domain: "Silogisme", text: "Anggaplah dua pernyataan pertama adalah benar. Apakah yang terakhir: 1. benar, 2. salah, 3. tidak tahu? \n- Anak-anak lelaki ini adalah anak yang normal. \n- Semua anak normal sifatnya aktif. \n- Anak-anak lelaki ini aktif.", options: ["Benar", "Salah", "Tidak tahu"], answer: 0 },
+  { id: 14, domain: "Penalaran Verbal", text: "JAUH adalah lawan kata dari:", options: ["terpencil", "dekat", "jauh", "terburu-buru", "pasti"], answer: 1 },
+  { id: 15, domain: "Aritmatika", text: "3 permen lemon seharga 10 rupiah.\nBerapa harga ½ lusin?", options: ["30 rupiah", "40 rupiah", "50 rupiah", "20 rupiah"], answer: 3 },
+  { id: 16, domain: "Ketelitian", text: "Berapa banyak duplikasi yang sama dari lima pasangan angka dibawah ini?\n\n84721            84721\n9210651        9210561\n14201201     14210210\n96101101     96101161\n88884444    88884444", options: ["1", "2", "3", "4"], answer: 1 },
+  { id: 17, domain: "Penyusunan Kalimat", text: "Misalkan Anda menyusun kata-kata berikut sehingga menjadi pernyataan yang benar: 'Selalu sebuah kata kerja kalimat suatu memiliki'. Tuliskan huruf terakhir dari kata terakhir sebagai jawaban.", options: ["a", "i", "t", "n"], answer: 0 },
+  { id: 18, domain: "Aritmatika", text: "Anak lelaki berumur 5 tahun dan saudara perempuannya dua kali lebih tua. Ketika anak lelaki itu berumur 8 tahun, berapa umur saudara perempuannya?", options: ["10 tahun", "11 tahun", "13 tahun", "16 tahun"], answer: 2 },
+  { id: 19, domain: "Perbandingan Kata", text: "IT'S dan ITS. Apakah kata ini: 1. memiliki arti yang sama, 2. memiliki arti yang berlawanan, 3. tidak memiliki arti yang sama atau berlawanan?", options: ["Memiliki arti yang sama", "Memiliki arti yang berlawanan", "Tidak memiliki arti yang sama atau berlawanan"], answer: 2 },
+  { id: 20, domain: "Silogisme", text: "John seusia dengan Sally. Sally lebih muda dari Bill. John lebih muda dari Bill. Apakah pernyataan terakhir: 1. benar, 2. salah, 3. tidak tahu?", options: ["Benar", "Salah", "Tidak tahu"], answer: 0 },
+  { id: 21, domain: "Aritmatika", text: "Seorang dealer membeli beberapa barel seharga 4.000 rupiah. Ia menjual dengan harga 5.000 rupiah, mendapat untung 50 rupiah setiap barel. Berapa banyak barel yang dijual?", options: ["10 barel", "15 barel", "20 barel", "25 barel"], answer: 2 },
+  { id: 22, domain: "Penyusunan Kalimat", text: "Misalkan Anda menyusun kata-kata berikut sehingga menjadi kalimat lengkap: 'telur menghasilkan semua ayam'. Jika kalimat itu benar, tulislah (B). Jika salah, tulislah (S).", options: ["B (Benar)", "S (Salah)"], answer: 1 },
+  { id: 23, domain: "Peribahasa", text: "Dua dari peribahasa berikut ini memiliki arti sama. Manakah itu?\n1. Semakin banyak memiliki sapi, akan memiliki satu anak sapi yang buruk.\n2. Anak seperti Ayahnya.\n3. Bila tertinggal sama jauhnya dengan satu mil\n4. Seorang dikenal dari persahabatan yang dijalin\n5. Mereka adalah benih dari mangkuk yang sama.", options: ["1 dan 3", "2 dan 5", "3 dan 4", "1 dan 5"], answer: 1 },
+  { id: 24, domain: "Aritmatika Waktu", text: "Sebuah jam terlambat 1 menit 18 detik dalam 39 hari. Berapa detik ia terlambat dalam sehari?", options: ["2 detik", "1.5 detik", "1 detik", "0.5 detik"], answer: 0 },
+  { id: 25, domain: "Perbandingan Kata", text: "CANVASS dan CANVAS. Apakah kata-kata ini: 1. memiliki arti yang sama, 2. memiliki arti berlawanan, 3. tidak memiliki arti sama atau berlawanan?", options: ["Memiliki arti yang sama", "Memiliki arti berlawanan", "Tidak memiliki arti sama atau berlawanan"], answer: 2 },
+  { id: 26, domain: "Silogisme", text: "Semua siswa mengikuti ujian. Beberapa orang diruangan ini adalah siswa. Beberapa orang diruangan ini mengikuti ujian. Pernyataan terakhir: 1. benar, 2. salah, 3. tidak tahu?", options: ["Benar", "Salah", "Tidak tahu"], answer: 0 },
+  { id: 27, domain: "Aritmatika", text: "Dalam 30 hari seorang menabung 1 dolar. Berapa rata-rata tabungannya setiap hari?", options: ["0.02 dolar", "0.033 dolar", "0.05 dolar", "1 dolar"], answer: 1 },
+  { id: 28, domain: "Perbandingan Kata", text: "INGENIOUS dan INGENUOUS. Apakah kata-kata ini: 1. memiliki arti sama, 2. memiliki arti berlawanan, 3. tidak memiliki arti sama atau berlawanan?", options: ["Memiliki arti sama", "Memiliki arti berlawanan", "Tidak memiliki arti sama atau berlawanan"], answer: 2 },
+  { id: 29, domain: "Aritmatika", text: "Dua orang menangkap 36 ikan. X menangkap 5 kali lebih banyak dari Y. Berapa ikan yang ditangkap Y?", options: ["5 ikan", "6 ikan", "8 ikan", "10 ikan"], answer: 1 },
+  { id: 30, domain: "Geometri", text: "Sebuah kotak segi empat, yang terisi penuh, memuat 800 kubik kaki gandum. Jika satu kotak lebarnya 8 kaki dan panjangnya 10 kaki, berapa kedalaman kotak itu?", options: ["8 kaki", "10 kaki", "12 kaki", "15 kaki"], answer: 1 },
+  { id: 31, domain: "Deret Angka", text: "Satu angka dari rangkaian berikut tidak cocok dengan pola angka yang lainnya. Angka berapakah itu?\n½, ¼, 1/6, 1/8, 1/9, 1/12", options: ["1/6", "1/8", "1/9", "1/12"], answer: 2 },
+  { id: 32, domain: "Penalaran Verbal", text: "Apakah P.M. berarti post merediem?", options: ["YA", "TIDAK"], answer: 0 },
+  { id: 33, domain: "Perbandingan Kata", text: "DAPAT DIPERCAYA dan GAMPANG PERCAYA. Apakah kata-kata ini: 1. memiliki arti sama, 2. memiliki arti berlawanan, 3. tidak memiliki arti sama atau berlawanan?", options: ["Memiliki arti sama", "Memiliki arti berlawanan", "Tidak memiliki arti sama atau berlawanan"], answer: 2 },
+  { id: 34, domain: "Aritmatika", text: "Sebuah rok membutuhkan 2 1/4 meter kain. Berapa banyak potong yang dihasilkan dari 45 meter kain?", options: ["15 potong", "18 potong", "20 potong", "22 potong"], answer: 2 },
+  { id: 35, domain: "Aritmatika Waktu", text: "Sebuah jam menunjuk tepat pada pukul 12 siang hari pada hari Senin. Pada pukul 2 siang, hari Rabu, jam itu terlambat 26 detik. Pada rata-rata yang sama, berapa banyak jam itu terlambat dalam ½ jam", options: ["1 detik", "1.5 detik", "2 detik", "0,250"], answer: 3 },
+  { id: 36, domain: "Aritmatika", text: "Tim bisbol kami kalah 9 permainan dalam musim ini. Ini merupakan 3/8 bagian dari semua pertandingan mereka. Berapa banyak pertandingan yang mereka mainkan?", options: ["20 pertandingan", "24 pertandingan", "28 pertandingan", "32 pertandingan"], answer: 1 },
+  { id: 37, domain: "Deret Angka", text: "Apakah angka selanjutnya dari seri ini? 1, 0.5, 0.25, 0.125, ...", options: ["0.05", "0.0625", "0.08", "0.1"], answer: 1 },
+  { id: 38, domain: "Logika Spasial", text: "Bentuk geometris ini dapat dibagi oleh suatu garis lurus menjadi dua bagian yang dapat disatukan hingga membentuk bujur sangkar sempurna. Gambarlah garis yang menghubungkan dua angka:", image: "https://i.postimg.cc/yd5S9HwV/soal40.png", options: ["Angka 6,9", "Angka 4-8", "Angka 2-10", "Angka 1-12"], answer: 0 },
+  { id: 39, domain: "Penalaran Kalimat", text: "Apakah arti dari kalimat berikut: 'Sebuah sapu yang baru menyapu dengan bersih. Sepatu yang sudah lama sifatnya makin lunak.' 1. sama, 2. berlawanan, 3. tidak sama atau berlawanan?", options: ["Sama", "Berlawanan", "Tidak sama atau berlawanan"], answer: 1 },
+  { id: 40, domain: "Ketelitian", text: "Berapa duplikasi dari pasangan kata berikut ini?\n\nRexford, J.D.     Rockford, J.D\nSingleton, M.O.  Simbleten, M.O.\nRichards, W.E.   Richad, W.E. \nSiegel, A.B.        Seigel, A.B.\nWood, A.O.        Wood, A.O.", options: ["1", "2", "3", "4"], answer: 0 },
+  { id: 41, domain: "Peribahasa", text: "Dua dari peribahasa ini memiliki makna yang serupa. Manakah itu?\n1. Anda tidak dapat membuat dompet sutra dari kuping babi betina.\n2. Orang yang mencuri telur akan mencuri sapi.\n3. Batu yang berguling tidak akan mengumpulkan lumut\n4. Anda tidak mungkin menghancurkan kapal yang sudah rusak.\n5. Ini ketidakmungkinan yang terjadi.", options: ["1,4", "2 dan 4", "1 dan 4", "Tidak ada (1 atau 5 / Tidak ada)"], answer: 0 },
+  { id: 42, domain: "Logika Spasial", text: "Gambar geometris ini dapat dibagi dengan garis lurus menjadi dua bagian yang dapat disatukan untuk membentuk sebuah bujur sangkar yang sempurna. Hubungkan dua angka:", image: "https://i.postimg.cc/NMVrTcWs/soal42.png", options: ["Angka 3,22", "Garisan 5-11", "Garisan 6-10", "Garisan 3-15"], answer: 0 },
+  { id: 43, domain: "Aritmatika", text: "Dalam kelompok angka berikut ini, manakah angka yang terkecil? 10, 1, 0.999, 0.33, 11", options: ["1", "0.999", "0.33", "10"], answer: 2 },
+  { id: 44, domain: "Penalaran Kalimat", text: "Apakah makna dari kalimat berikut: 'Tidak ada orang jujur meminta maaf atas kejujurannya. Kejujuran dihormati dan lapar pujian.' 1. sama, 2. berlawanan, 3. tidak sama atau berlawanan?", options: ["Sama", "Berlawanan", "Tidak sama atau berlawanan"], answer: 1 },
+  { id: 45, domain: "Aritmatika Finansial", text: "Dengan harga 1.80 dolar, seorang grosir membeli satu kardus buah berisi 12 lusin. Ia tahu dua lusin akan busuk. Dengan harga berapa per lusin dia harus menjual jeruk untuk mendapat 1/3 dari harga seluruhnya?", options: ["0.20 dolar", "24", "0.30 dolar", "0.36 dolar"], answer: 1 },
+  { id: 46, domain: "Klasifikasi Kata", text: "Dalam rangkaian kata berikut, manakah kata yang berbeda: koloni, perkawanan, kawanan, kru, konstelasi", options: ["koloni", "perkawanan", "kru", "konstelasi"], answer: 2 },
+  { id: 47, domain: "Silogisme", text: "Anggaplah dua pernyataan pertama benar: 'Orang besar dibodohi. Saya dibodohi. Saya adalah orang besar.' Apakah pertanyaan terakhir: 1. benar, 2. salah, 3. tidak tahu?", options: ["Benar", "Salah", "tidak tahu"], answer: 2 },
+  { id: 48, domain: "Aritmatika Bisnis", text: "Tiga orang membentuk kemitraan (X investasi 4.500 dolar, Y 3.500 dolar, Z 2.000 dolar). Jika keuntungan mencapai 1.500 dolar, lebih kurang berapa yang diperoleh X dibanding jika keuntungan dibagi rata?", options: ["125 dolar", "175", "200 dolar", "250 dolar"], answer: 1 },
+  { id: 49, domain: "Logika Kombinasi", text: "Empat dari 5 bagian ini dapat digabungkan untuk membuat segitiga. Manakah keempat gambar ini?", image: "https://i.postimg.cc/j59JNbGT/soal49.jpg", options: ["Bagian 1,2,3,4", "Bagian 1,2,4,5", "Bagian 2,3,4,5", "Semua bagian"], answer: 1 },
+  { id: 50, domain: "Aritmatika Kompleks", text: "Untuk mencetak artikel 30.000 kata, dipakai dua jenis huruf. Tipe besar memuat 1.200 kata/halaman, tipe kecil memuat 1.500 kata/halaman. Total 22 halaman majalah. Berapa halaman untuk tipe kecil?", options: ["10 halaman", "12 halaman", "14 halaman", "16 halaman"], answer: 1 }
+];
+
+let globalCandidatesList = [];
+let currentActiveCandidateResult = null;
+let activeRadarChart = null;
+
+const App = {
+  candidate: {},
+  currentIndex: 0,
+  answers: {},
+  timerInterval: null,
+  timeLeft: 720,
+  startTime: null,
+
+  init() {
+    document.getElementById("candidateForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      App.candidate = {
+        name: document.getElementById("fieldName").value.trim(),
+        position: document.getElementById("fieldPosition").value.trim(),
+        department: document.getElementById("fieldDepartment").value.trim(),
+        email: document.getElementById("fieldEmail").value.trim()
+      };
+      App.startAssessment();
+    });
+  },
+
+  openAdminLogin() {
+    const pwd = prompt("Masukkan Password Admin:");
+    if (pwd === "admin123") {
+      App.loadAdminData();
+    } else if (pwd !== null) {
+      alert("Password salah!");
+    }
+  },
+
+  async loadAdminData() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('candidate_results')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        alert("Gagal memuat data database: " + error.message);
+        return;
+      }
+
+      globalCandidatesList = data || [];
+      App.renderAdminTable(globalCandidatesList);
+
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.getElementById("view-admin-dashboard").classList.add("active");
+    } catch (err) {
+      alert("Terjadi kesalahan koneksi ke Supabase.");
+    }
+  },
+
+  renderAdminTable(list) {
+    const tbody = document.getElementById("adminTableBody");
+    if (!list || list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Belum ada data kandidat yang masuk.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+    list.forEach((item, index) => {
+      const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-';
+      const isPassed = item.raw_score >= (item.threshold || 25);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="font-family: var(--font-data); font-size: 11.5px; color: var(--gray-500);">${dateStr}</td>
+        <td style="font-weight: 600;">${item.name || '-'}</td>
+        <td>${item.position || '-'} <br><small style="color:var(--gray-500);">${item.department || '-'}</small></td>
+        <td>${item.email || '-'}</td>
+        <td style="font-family: var(--font-data); font-weight: bold;">${item.raw_score} / 50</td>
+        <td style="font-family: var(--font-data);">${item.estimated_iq || '-'}</td>
+        <td><span style="padding: 3px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 600; background: ${isPassed ? 'var(--status-answered-bg)' : '#fde8e8'}; color: ${isPassed ? 'var(--status-answered)' : '#c53030'};">${isPassed ? 'PASS' : 'FAIL'}</span></td>
+        <td><button onclick="App.viewCandidateDetail(${index})" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">Detail</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  },
+
+  viewCandidateDetail(index) {
+    const res = globalCandidatesList[index];
+    if (!res) return;
+    currentActiveCandidateResult = res;
+
+    document.getElementById("resName").innerText = res.name || '-';
+    document.getElementById("resDate").innerText = res.created_at ? new Date(res.created_at).toLocaleString('id-ID') : '-';
+    document.getElementById("resTimeUsed").innerText = res.time_used || '-';
+    document.getElementById("resPositionDept").innerText = `${res.position || '-'} (${res.department || '-'})`;
+    document.getElementById("resEmail").innerText = res.email || '-';
+
+    document.getElementById("resCorrect").innerText = res.raw_score;
+    document.getElementById("resIncorrect").innerText = 50 - res.raw_score;
+    document.getElementById("resRawScore").innerText = `${res.raw_score} / 50`;
+    document.getElementById("resIqVal").innerText = res.estimated_iq;
+    document.getElementById("resInterpretation").innerText = res.interpretation;
+
+    const threshold = res.threshold !== undefined ? res.threshold : 25;
+    document.getElementById("thresholdInput").value = threshold;
+    App.updatePassFailStatus();
+
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-results").classList.add("active");
+
+    setTimeout(() => {
+      App.renderRadarChart(res.domain_stats);
+    }, 50);
+  },
+
+  updatePassFailStatus() {
+    if (!currentActiveCandidateResult) return;
+    const threshold = parseInt(document.getElementById("thresholdInput").value) || 0;
+    const rawScore = currentActiveCandidateResult.raw_score;
+    const isPassed = rawScore >= threshold;
+    const statusEl = document.getElementById("resPassFailStatus");
+    statusEl.innerText = isPassed ? "PASS" : "FAIL";
+    statusEl.style.background = isPassed ? "var(--status-answered-bg)" : "#fde8e8";
+    statusEl.style.color = isPassed ? "var(--status-answered)" : "#c53030";
+  },
+
+  renderRadarChart(domainStats) {
+    const ctx = document.getElementById('radarChartCanvas').getContext('2d');
+    if (activeRadarChart) {
+      activeRadarChart.destroy();
+    }
+
+    let labels = [];
+    let dataPoints = [];
+
+    if (domainStats && typeof domainStats === 'object') {
+      labels = Object.keys(domainStats);
+      dataPoints = Object.values(domainStats);
+    } else {
+      labels = ["Verbal", "Aritmatika", "Logika/Spasial", "Silogisme", "Analogi/Deret"];
+      dataPoints = [80, 60, 70, 90, 50];
+    }
+
+    activeRadarChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Akurasi Domain (%)',
+          data: dataPoints,
+          backgroundColor: 'rgba(44, 107, 176, 0.2)',
+          borderColor: '#16406b',
+          borderWidth: 2,
+          pointBackgroundColor: '#0b2540'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { stepSize: 20 }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  },
+
+  showAdminDashboard() {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-admin-dashboard").classList.add("active");
+  },
+
+  startAssessment() {
+    App.startTime = new Date();
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-assessment").classList.add("active");
+    App.buildGrid();
+    App.loadQuestion(0);
+    App.startTimer();
+  },
+
+  startTimer() {
+    App.timerInterval = setInterval(() => {
+      App.timeLeft--;
+      let m = Math.floor(App.timeLeft / 60);
+      let s = App.timeLeft % 60;
+      document.getElementById("timerDisplay").innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+      if (App.timeLeft <= 0) {
+        clearInterval(App.timerInterval);
+        App.submitAssessment();
+      }
+    }, 1000);
+  },
+
+  buildGrid() {
+    const grid = document.getElementById("questionGrid");
+    grid.innerHTML = "";
+    questionsData.forEach((q, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "q-btn";
+      btn.id = `grid-btn-${idx}`;
+      btn.innerText = idx + 1;
+      btn.onclick = () => App.loadQuestion(idx);
+      grid.appendChild(btn);
+    });
+  },
+
+  loadQuestion(idx) {
+    App.currentIndex = idx;
+    const q = questionsData[idx];
+    document.getElementById("qCategoryMeta").innerText = q.domain;
+    document.getElementById("qCounterMeta").innerText = `Soal ${idx + 1} dari ${questionsData.length}`;
+    document.getElementById("qTextTitle").innerText = q.text;
+
+    const imgWrapper = document.getElementById("qImageWrapper");
+    const imgElement = document.getElementById("qImageElement");
+    if (q.image) {
+      imgElement.src = q.image;
+      imgWrapper.style.display = "block";
+    } else {
+      imgElement.src = "";
+      imgWrapper.style.display = "none";
+    }
+
+    const optContainer = document.getElementById("optionsContainer");
+    optContainer.innerHTML = "";
+    q.options.forEach((opt, oIdx) => {
+      const isChecked = App.answers[idx] === oIdx;
+      const label = document.createElement("label");
+      label.className = "option-label";
+      label.innerHTML = `
+        <input type="radio" name="currentOption" value="${oIdx}" ${isChecked ? 'checked' : ''} onchange="App.selectOption(${oIdx})">
+        <span class="option-text">${opt}</span>
+      `;
+      optContainer.appendChild(label);
+    });
+
+    document.getElementById("prevBtn").style.visibility = idx === 0 ? "hidden" : "visible";
+    const nextBtn = document.getElementById("nextBtn");
+    if (idx === questionsData.length - 1) {
+      nextBtn.innerText = "Selesai & Kirim";
+      nextBtn.className = "btn btn-primary";
+      nextBtn.onclick = () => App.submitAssessment();
+    } else {
+      nextBtn.innerText = "Selanjutnya";
+      nextBtn.className = "btn btn-primary";
+      nextBtn.onclick = () => App.nextQuestion();
+    }
+
+    App.updateGridUI();
+  },
+
+  selectOption(oIdx) {
+    App.answers[App.currentIndex] = oIdx;
+    App.updateGridUI();
+  },
+
+  updateGridUI() {
+    questionsData.forEach((_, idx) => {
+      const btn = document.getElementById(`grid-btn-${idx}`);
+      if (!btn) return;
+      btn.className = "q-btn";
+      if (idx === App.currentIndex) btn.classList.add("current");
+      if (App.answers[idx] !== undefined) btn.classList.add("answered");
+    });
+  },
+
+  nextQuestion() {
+    if (App.currentIndex < questionsData.length - 1) {
+      App.loadQuestion(App.currentIndex + 1);
+    }
+  },
+
+  prevQuestion() {
+    if (App.currentIndex > 0) {
+      App.loadQuestion(App.currentIndex - 1);
+    }
+  },
+
+  async submitAssessment() {
+    clearInterval(App.timerInterval);
+
+    const endTime = new Date();
+    const diffSec = Math.floor((endTime - App.startTime) / 1000);
+    const mUsed = Math.floor(diffSec / 60);
+    const sUsed = diffSec % 60;
+    const timeUsedStr = `${mUsed} menit ${sUsed} detik`;
+
+    let correctCount = 0;
+    let domainCounts = {};
+    let domainTotals = {};
+
+    questionsData.forEach((q, idx) => {
+      const domain = q.domain || "Umum";
+      if (!domainTotals[domain]) {
+        domainTotals[domain] = 0;
+        domainCounts[domain] = 0;
+      }
+      domainTotals[domain]++;
+
+      if (App.answers[idx] === q.answer) {
+        correctCount++;
+        domainCounts[domain]++;
+      }
+    });
+
+    let domainStats = {};
+    Object.keys(domainTotals).forEach(dom => {
+      domainStats[dom] = Math.round((domainCounts[dom] / domainTotals[dom]) * 100);
+    });
+
+    const rawScore = correctCount;
+    const estimatedIQ = iqLookupTable[rawScore] !== undefined ? iqLookupTable[rawScore] : 160;
+    const interpretation = getInterpretation(estimatedIQ);
+
+    const payload = {
+      name: App.candidate.name,
+      email: App.candidate.email,
+      position: App.candidate.position,
+      department: App.candidate.department,
+      time_used: timeUsedStr,
+      raw_score: rawScore,
+      estimated_iq: estimatedIQ,
+      interpretation: interpretation,
+      threshold: 25,
+      domain_stats: domainStats
+    };
+
+    await submitToSupabase(payload);
+
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-candidate-finished").classList.add("active");
+  }
+};
+
+async function submitToSupabase(resultData) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('candidate_results')
+      .insert([resultData]);
+
+    if (error) console.error("Gagal menyimpan ke Supabase:", error.message);
+  } catch (err) {
+    console.error("Terjadi kesalahan koneksi:", err);
+  }
+}
+
+window.onload = () => App.init();
+</script>
+</body>
+</html>
