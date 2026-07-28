@@ -198,6 +198,7 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
             <p style="font-size: 13px; color: var(--gray-500); margin: 0;">Rekapitulasi Hasil Tes Seluruh Kandidat</p>
           </div>
           <div style="display: flex; gap: 10px;">
+            <button onclick="App.syncOfflineData()" class="btn btn-outline" style="padding: 8px 14px; font-size: 13px; border-color: var(--navy-600); color: var(--navy-700);">🔄 Sinkronkan Data Offline</button>
             <button onclick="App.loadAdminData()" class="btn btn-outline" style="padding: 8px 14px; font-size: 13px;">Refresh Data</button>
             <button onclick="location.reload()" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;">Keluar Admin</button>
           </div>
@@ -716,6 +717,33 @@ const App = {
 
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-candidate-finished").classList.add("active");
+  },
+
+  async syncOfflineData() {
+    const savedData = localStorage.getItem('unsent_cognitive_result');
+    if (!savedData) {
+      alert("Tidak ada data offline yang tersimpan di perangkat ini.");
+      return;
+    }
+
+    if (!confirm("Ditemukan data tes cadangan. Apakah Anda ingin mengirimkannya sekarang ke Supabase?")) {
+      return;
+    }
+
+    try {
+      const resultData = JSON.parse(savedData);
+      const { error } = await supabaseClient
+        .from('candidate_results')
+        .insert([resultData]);
+
+      if (error) throw error;
+
+      localStorage.removeItem('unsent_cognitive_result');
+      alert("Data offline berhasil disinkronkan ke database!");
+      App.loadAdminData();
+    } catch (err) {
+      alert("Gagal menyinkronkan data: " + err.message);
+    }
   }
 };
 
@@ -725,9 +753,16 @@ async function submitToSupabase(resultData) {
       .from('candidate_results')
       .insert([resultData]);
 
-    if (error) console.error("Gagal menyimpan ke Supabase:", error.message);
+    if (error) throw error;
+
+    // Jika berhasil terkirim, bersihkan cadangan lokal jika ada sebelumnya
+    localStorage.removeItem('unsent_cognitive_result');
+    
   } catch (err) {
-    console.error("Terjadi kesalahan koneksi:", err);
+    console.error("Gagal menyimpan ke Supabase, menyimpan ke LocalStorage:", err);
+    
+    // AMANKAN DATA: Simpan data tes kandidat ke memori lokal browser[cite: 1]
+    localStorage.setItem('unsent_cognitive_result', JSON.stringify(resultData));
   }
 }
 
