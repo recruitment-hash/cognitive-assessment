@@ -1,0 +1,15 @@
+name: Ping Supabase Free Tier
+
+on:
+  schedule:
+    # Menjalankan script setiap hari Senin pukul 00:00 UTC
+    - cron: '0 0 * * 1'
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send HTTP Request to Supabase
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
