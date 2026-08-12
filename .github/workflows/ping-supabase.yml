@@ -2,8 +2,9 @@ name: Ping Supabase Free Tier
 
 on:
   schedule:
-    # Menjalankan script setiap hari Senin pukul 00:00 UTC
-    - cron: '0 0 * * 1'
+    # Setiap 4 hari sekali pukul 00:00 UTC — ada margin aman dari batas 7 hari
+    - cron: '0 0 */4 * *'
+  workflow_dispatch: # bisa dijalankan manual dari tab Actions untuk testing
 
 jobs:
   ping:
@@ -11,5 +12,14 @@ jobs:
     steps:
       - name: Send HTTP Request to Supabase
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/candidate_results?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Response code: $response"
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "✅ Ping berhasil, Supabase tetap aktif"
+          else
+            echo "❌ Ping gagal dengan status $response"
+            exit 1
+          fi
