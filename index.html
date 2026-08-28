@@ -23,6 +23,7 @@
   --navy-900: #0b2540; --navy-800: #0f2f52; --navy-700: #16406b; --navy-600: #1f5288; --navy-500: #2c6bb0; --navy-100: #e6edf5;
   --white: #ffffff; --gray-50: #f6f7f9; --gray-100: #eef0f3; --gray-200: #e2e5ea; --gray-300: #cdd2d9; --gray-500: #7c8798; --gray-700: #46505f; --ink: #1a2432;
   --status-answered: #1e7a4c; --status-answered-bg: #e7f5ee; --status-current: var(--navy-700);
+  --danger: #c53030; --danger-bg: #fde8e8;
   --font-ui: 'IBM Plex Sans', -apple-system, sans-serif; --font-data: 'IBM Plex Mono', monospace;
   --radius: 10px; --radius-sm: 6px; --shadow-card: 0 1px 2px rgba(11, 37, 64, 0.06), 0 8px 24px rgba(11, 37, 64, 0.06);
 }
@@ -42,6 +43,7 @@ body { font-family: var(--font-ui); background: var(--gray-50); color: var(--ink
 .landing__stats { display: flex; gap: 26px; margin-top: 26px; }
 .landing__stat b { display: block; font-family: var(--font-data); font-size: 20px; }
 .landing__stat span { font-size: 11.5px; color: var(--navy-100); text-transform: uppercase; }
+.landing__notice { margin-top: 22px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 12.5px; color: var(--navy-100); line-height: 1.6; }
 .card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow-card); }
 .candidate-card { padding: 32px 36px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -52,14 +54,19 @@ body { font-family: var(--font-ui); background: var(--gray-50); color: var(--ink
 .btn-primary { background: var(--navy-900); color: var(--white); }
 .btn-primary:hover { background: var(--navy-700); }
 .btn-outline { background: var(--white); color: var(--navy-900); border: 1.5px solid var(--gray-300); }
+.btn-danger { background: var(--danger); color: var(--white); }
 .btn-block { width: 100%; }
 
 /* Assessment Workspace */
-.workspace { flex: 1; display: grid; grid-template-columns: 290px 1fr; background: var(--white); }
+.workspace { flex: 1; display: grid; grid-template-columns: 290px 1fr; background: var(--white); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
 .sidebar { background: var(--gray-50); border-right: 1px solid var(--gray-200); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
 .timer-box { background: var(--navy-900); color: var(--white); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
 .timer-box__label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--navy-100); }
 .timer-box__val { font-family: var(--font-data); font-size: 28px; font-weight: 600; margin-top: 4px; }
+.integrity-box { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 14px; }
+.integrity-box__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); font-weight: 600; margin-bottom: 6px; }
+.integrity-box__val { font-family: var(--font-data); font-size: 18px; font-weight: 600; color: var(--navy-900); }
+.integrity-box__val.warn { color: var(--danger); }
 .grid-nav__title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--gray-700); margin-bottom: 10px; }
 .grid-nav__items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
 .q-btn { width: 100%; aspect-ratio: 1; border: 1px solid var(--gray-300); background: var(--white); border-radius: 4px; font-family: var(--font-data); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -71,7 +78,7 @@ body { font-family: var(--font-ui); background: var(--gray-50); color: var(--ink
 .q-title { font-size: 18px; font-weight: 650; color: var(--navy-900); line-height: 1.5; margin-bottom: 20px; white-space: pre-line; }
 
 .question-image-container { margin-bottom: 24px; text-align: center; background: var(--gray-50); border: 1.5px dashed var(--gray-300); border-radius: var(--radius-sm); padding: 16px; }
-.question-image-container img { max-width: 100%; height: auto; border-radius: 4px; max-height: 240px; object-fit: contain; }
+.question-image-container img { max-width: 100%; height: auto; border-radius: 4px; max-height: 240px; object-fit: contain; pointer-events: none; }
 
 .options-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
 .option-label { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; background: var(--white); }
@@ -86,6 +93,21 @@ body { font-family: var(--font-ui); background: var(--gray-50); color: var(--ink
 .table { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; }
 .table th, .table td { padding: 12px 14px; border-bottom: 1px solid var(--gray-200); }
 .table th { background: var(--gray-50); color: var(--navy-900); font-weight: 650; }
+
+/* Integrity / Violation Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(11, 37, 64, 0.72); display: none; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: var(--white); border-radius: var(--radius); padding: 32px; max-width: 440px; width: 100%; text-align: center; box-shadow: var(--shadow-card); }
+.modal-box__icon { font-size: 42px; margin-bottom: 12px; }
+.modal-box h3 { margin: 0 0 10px; color: var(--navy-900); }
+.modal-box p { color: var(--gray-700); line-height: 1.6; font-size: 14px; margin-bottom: 22px; }
+
+/* Fullscreen gate */
+.fs-gate { position: fixed; inset: 0; background: var(--navy-900); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.fs-gate.active { display: flex; }
+.fs-gate__box { background: var(--white); border-radius: var(--radius); padding: 40px; max-width: 460px; text-align: center; }
+.fs-gate__box h3 { color: var(--navy-900); margin-bottom: 10px; }
+.fs-gate__box p { color: var(--gray-700); font-size: 14px; line-height: 1.6; margin-bottom: 22px; }
 
 @media print {
   body { background: white !important; }
@@ -118,6 +140,9 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
             <div class="landing__stat"><b>50</b><span>Soal</span></div>
             <div class="landing__stat"><b>12 Menit</b><span>Batas Waktu</span></div>
           </div>
+          <div class="landing__notice">
+            ⚠️ <b>Kebijakan Integritas Tes:</b> Tes ini dijalankan dalam mode layar penuh. Sistem akan mencatat apabila Anda berpindah tab/aplikasi, keluar dari layar penuh, atau mencoba menyalin teks soal. Pastikan Anda berada di lingkungan yang tenang dan tidak menggunakan alat bantu lain selama pengerjaan.
+          </div>
         </section>
 
         <section class="card candidate-card">
@@ -145,6 +170,10 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
         <div class="timer-box">
           <div class="timer-box__label">Sisa Waktu</div>
           <div id="timerDisplay" class="timer-box__val">12:00</div>
+        </div>
+        <div class="integrity-box">
+          <div class="integrity-box__label">Status Integritas</div>
+          <div id="integrityDisplay" class="integrity-box__val">0 Pelanggaran</div>
         </div>
         <div class="grid-nav">
           <div class="grid-nav__title">Navigasi Soal</div>
@@ -214,12 +243,13 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
                 <th>Email</th>
                 <th>Raw Score</th>
                 <th>Estimated IQ</th>
+                <th>Pelanggaran</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="adminTableBody">
-              <tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Memuat data dari database...</td></tr>
+              <tr><td colspan="9" style="text-align: center; color: var(--gray-500);">Memuat data dari database...</td></tr>
             </tbody>
           </table>
         </div>
@@ -245,6 +275,7 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
           <div><b>Time Used:</b> <span id="resTimeUsed">-</span></div>
           <div><b>Position / Dept:</b> <span id="resPositionDept">-</span></div>
           <div><b>Email:</b> <span id="resEmail">-</span></div>
+          <div><b>Pelanggaran Integritas:</b> <span id="resViolations">-</span></div>
         </div>
 
         <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 20px; margin-bottom: 20px;">
@@ -300,6 +331,26 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
       </div>
     </div>
   </section>
+</div>
+
+<!-- FULLSCREEN GATE (shown before test can begin) -->
+<div id="fsGate" class="fs-gate">
+  <div class="fs-gate__box">
+    <div style="font-size:42px; margin-bottom:12px;">🖥️</div>
+    <h3>Aktifkan Mode Layar Penuh</h3>
+    <p>Untuk menjaga integritas tes, Anda wajib mengerjakan dalam mode layar penuh. Klik tombol di bawah untuk melanjutkan. Jangan keluar dari layar penuh atau berpindah tab selama tes berlangsung.</p>
+    <button class="btn btn-primary btn-block" onclick="App.enterFullscreenAndStart()">Masuk Layar Penuh & Mulai Tes</button>
+  </div>
+</div>
+
+<!-- VIOLATION WARNING MODAL -->
+<div id="violationModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box__icon">⚠️</div>
+    <h3>Pelanggaran Terdeteksi</h3>
+    <p id="violationModalText">Sistem mendeteksi Anda meninggalkan halaman tes. Aktivitas ini telah dicatat. Mohon tetap fokus pada halaman tes hingga selesai.</p>
+    <button class="btn btn-primary btn-block" onclick="App.acknowledgeViolation()">Saya Mengerti, Lanjutkan Tes</button>
+  </div>
 </div>
 
 <script>
@@ -395,6 +446,12 @@ const App = {
   timeLeft: 720,
   startTime: null,
 
+  // --- Integrity tracking state ---
+  violationCount: 0,
+  testActive: false,        // true only while the candidate is inside the timed assessment
+  integrityLog: [],         // array of {type, time}
+  violationModalQueue: 0,   // avoid stacking multiple modals
+
   init() {
     document.getElementById("candidateForm").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -404,8 +461,12 @@ const App = {
         department: document.getElementById("fieldDepartment").value.trim(),
         email: document.getElementById("fieldEmail").value.trim()
       };
-      App.startAssessment();
+      // Show fullscreen gate instead of starting immediately
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.getElementById("fsGate").classList.add("active");
     });
+
+    App.attachIntegrityListeners();
   },
 
   openAdminLogin() {
@@ -416,6 +477,116 @@ const App = {
       alert("Password salah!");
     }
   },
+
+  // ================= INTEGRITY / ANTI-CHEAT =================
+
+  attachIntegrityListeners() {
+    // Tab switch / app switch detection
+    document.addEventListener("visibilitychange", () => {
+      if (App.testActive && document.hidden) {
+        App.recordViolation("tab_switch", "Anda berpindah tab atau meminimalkan jendela.");
+      }
+    });
+
+    // Window blur (covers alt-tab, second monitor, etc. on some browsers)
+    window.addEventListener("blur", () => {
+      if (App.testActive) {
+        App.recordViolation("window_blur", "Jendela browser kehilangan fokus (kemungkinan berpindah aplikasi).");
+      }
+    });
+
+    // Fullscreen exit detection
+    document.addEventListener("fullscreenchange", () => {
+      const isFs = !!document.fullscreenElement;
+      if (App.testActive && !isFs) {
+        App.recordViolation("fullscreen_exit", "Anda keluar dari mode layar penuh.");
+        // Re-show the gate so they must re-enter fullscreen to continue
+        document.getElementById("fsGate").classList.add("active");
+      }
+    });
+
+    // Block copy / cut / paste / right-click during the assessment view
+    ["copy", "cut", "paste"].forEach(evt => {
+      document.addEventListener(evt, (e) => {
+        if (App.testActive) {
+          e.preventDefault();
+          App.recordViolation(evt, `Percobaan aksi "${evt}" terdeteksi dan diblokir.`);
+        }
+      });
+    });
+
+    document.addEventListener("contextmenu", (e) => {
+      if (App.testActive) {
+        e.preventDefault();
+      }
+    });
+
+    // Block common devtools / view-source / print shortcuts during the test
+    document.addEventListener("keydown", (e) => {
+      if (!App.testActive) return;
+      const k = e.key ? e.key.toLowerCase() : "";
+      const blockCombo =
+        (e.ctrlKey || e.metaKey) && ["c", "v", "x", "u", "s", "p"].includes(k) ||
+        k === "f12" ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ["i", "j", "c"].includes(k));
+
+      if (blockCombo) {
+        e.preventDefault();
+        App.recordViolation("shortcut_blocked", "Percobaan menggunakan shortcut terlarang (copy/devtools/print) terdeteksi.");
+      }
+    });
+
+    // Warn before actually closing/reloading the tab mid-test
+    window.addEventListener("beforeunload", (e) => {
+      if (App.testActive) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+  },
+
+  recordViolation(type, message) {
+    App.violationCount++;
+    App.integrityLog.push({ type, time: new Date().toISOString() });
+    App.updateIntegrityUI();
+    App.showViolationModal(message);
+  },
+
+  updateIntegrityUI() {
+    const el = document.getElementById("integrityDisplay");
+    if (!el) return;
+    el.innerText = `${App.violationCount} Pelanggaran`;
+    el.classList.toggle("warn", App.violationCount > 0);
+  },
+
+  showViolationModal(message) {
+    document.getElementById("violationModalText").innerText = message + " Total pelanggaran tercatat: " + App.violationCount + ".";
+    document.getElementById("violationModal").classList.add("active");
+    // Pause is implicit: timer keeps running (candidates shouldn't gain time by cheating),
+    // but we block interaction with the question until acknowledged.
+  },
+
+  acknowledgeViolation() {
+    document.getElementById("violationModal").classList.remove("active");
+  },
+
+  async enterFullscreenAndStart() {
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+      }
+    } catch (err) {
+      // If fullscreen is denied/unsupported, we still proceed but log it
+      App.integrityLog.push({ type: "fullscreen_unavailable", time: new Date().toISOString() });
+    }
+    document.getElementById("fsGate").classList.remove("active");
+    App.startAssessment();
+  },
+
+  // ================= ADMIN =================
 
   async loadAdminData() {
     try {
@@ -442,7 +613,7 @@ const App = {
   renderAdminTable(list) {
     const tbody = document.getElementById("adminTableBody");
     if (!list || list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Belum ada data kandidat yang masuk.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--gray-500);">Belum ada data kandidat yang masuk.</td></tr>`;
       return;
     }
 
@@ -450,6 +621,7 @@ const App = {
     list.forEach((item, index) => {
       const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-';
       const isPassed = item.raw_score >= (item.threshold || 25);
+      const violations = item.violation_count || 0;
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-family: var(--font-data); font-size: 11.5px; color: var(--gray-500);">${dateStr}</td>
@@ -458,6 +630,7 @@ const App = {
         <td>${item.email || '-'}</td>
         <td style="font-family: var(--font-data); font-weight: bold;">${item.raw_score} / 50</td>
         <td style="font-family: var(--font-data);">${item.estimated_iq || '-'}</td>
+        <td style="font-family: var(--font-data); text-align:center; ${violations > 0 ? 'color: var(--danger); font-weight:700;' : ''}">${violations}</td>
         <td><span style="padding: 3px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 600; background: ${isPassed ? 'var(--status-answered-bg)' : '#fde8e8'}; color: ${isPassed ? 'var(--status-answered)' : '#c53030'};">${isPassed ? 'PASS' : 'FAIL'}</span></td>
         <td><button onclick="App.viewCandidateDetail(${index})" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">Detail</button></td>
       `;
@@ -475,6 +648,7 @@ const App = {
     document.getElementById("resTimeUsed").innerText = res.time_used || '-';
     document.getElementById("resPositionDept").innerText = `${res.position || '-'} (${res.department || '-'})`;
     document.getElementById("resEmail").innerText = res.email || '-';
+    document.getElementById("resViolations").innerText = `${res.violation_count || 0} kali terdeteksi`;
 
     document.getElementById("resCorrect").innerText = res.raw_score;
     document.getElementById("resIncorrect").innerText = 50 - res.raw_score;
@@ -557,8 +731,15 @@ const App = {
     document.getElementById("view-admin-dashboard").classList.add("active");
   },
 
+  // ================= ASSESSMENT FLOW =================
+
   startAssessment() {
     App.startTime = new Date();
+    App.testActive = true;
+    App.violationCount = 0;
+    App.integrityLog = [];
+    App.updateIntegrityUI();
+
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-assessment").classList.add("active");
     App.buildGrid();
@@ -666,6 +847,12 @@ const App = {
 
   async submitAssessment() {
     clearInterval(App.timerInterval);
+    App.testActive = false;
+
+    // Exit fullscreen cleanly once the test is done
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) {}
+    }
 
     const endTime = new Date();
     const diffSec = Math.floor((endTime - App.startTime) / 1000);
@@ -710,7 +897,9 @@ const App = {
       estimated_iq: estimatedIQ,
       interpretation: interpretation,
       threshold: 25,
-      domain_stats: domainStats
+      domain_stats: domainStats,
+      violation_count: App.violationCount,
+      integrity_log: App.integrityLog
     };
 
     await submitToSupabase(payload);
@@ -761,7 +950,7 @@ async function submitToSupabase(resultData) {
   } catch (err) {
     console.error("Gagal menyimpan ke Supabase, menyimpan ke LocalStorage:", err);
     
-    // AMANKAN DATA: Simpan data tes kandidat ke memori lokal browser[cite: 1]
+    // AMANKAN DATA: Simpan data tes kandidat ke memori lokal browser
     localStorage.setItem('unsent_cognitive_result', JSON.stringify(resultData));
   }
 }
