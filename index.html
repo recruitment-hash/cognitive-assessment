@@ -333,13 +333,14 @@ Anda memiliki waktu 12 menit untuk memberi jawaban yang benar sebanyak mungkin. 
   </section>
 </div>
 
-<!-- FULLSCREEN GATE (shown before test can begin) -->
+<!-- FULLSCREEN GATE (shown before test can begin, and again if fullscreen is exited mid-test) -->
 <div id="fsGate" class="fs-gate">
   <div class="fs-gate__box">
     <div style="font-size:42px; margin-bottom:12px;">🖥️</div>
-    <h3>Aktifkan Mode Layar Penuh</h3>
-    <p>Untuk menjaga integritas tes, Anda wajib mengerjakan dalam mode layar penuh. Klik tombol di bawah untuk melanjutkan. Jangan keluar dari layar penuh atau berpindah tab selama tes berlangsung.</p>
-    <button class="btn btn-primary btn-block" onclick="App.enterFullscreenAndStart()">Masuk Layar Penuh & Mulai Tes</button>
+    <h3 id="fsGateTitle">Aktifkan Mode Layar Penuh</h3>
+    <p id="fsGateText">Untuk menjaga integritas tes, Anda wajib mengerjakan dalam mode layar penuh. Klik tombol di bawah untuk melanjutkan. Jangan keluar dari layar penuh atau berpindah tab selama tes berlangsung.</p>
+    <button id="fsGateStartBtn" class="btn btn-primary btn-block" onclick="App.enterFullscreenAndStart()">Masuk Layar Penuh & Mulai Tes</button>
+    <button id="fsGateResumeBtn" class="btn btn-danger btn-block" style="display:none;" onclick="App.resumeFullscreen()">Kembali ke Layar Penuh & Lanjutkan Tes</button>
   </div>
 </div>
 
@@ -500,7 +501,12 @@ const App = {
       const isFs = !!document.fullscreenElement;
       if (App.testActive && !isFs) {
         App.recordViolation("fullscreen_exit", "Anda keluar dari mode layar penuh.");
-        // Re-show the gate so they must re-enter fullscreen to continue
+        // Re-show the gate so they must re-enter fullscreen to continue.
+        // IMPORTANT: this is a RESUME, not a fresh start — do not reset progress/violations.
+        document.getElementById("fsGateTitle").innerText = "Anda Keluar dari Layar Penuh";
+        document.getElementById("fsGateText").innerText = "Tindakan ini telah dicatat sebagai pelanggaran integritas (total: " + App.violationCount + "). Timer terus berjalan. Klik tombol di bawah untuk kembali ke layar penuh dan melanjutkan tes dari soal terakhir Anda.";
+        document.getElementById("fsGateResumeBtn").style.display = "block";
+        document.getElementById("fsGateStartBtn").style.display = "none";
         document.getElementById("fsGate").classList.add("active");
       }
     });
@@ -570,7 +576,7 @@ const App = {
     document.getElementById("violationModal").classList.remove("active");
   },
 
-  async enterFullscreenAndStart() {
+  async requestFs() {
     try {
       const el = document.documentElement;
       if (el.requestFullscreen) {
@@ -578,12 +584,27 @@ const App = {
       } else if (el.webkitRequestFullscreen) {
         await el.webkitRequestFullscreen();
       }
+      return true;
     } catch (err) {
-      // If fullscreen is denied/unsupported, we still proceed but log it
       App.integrityLog.push({ type: "fullscreen_unavailable", time: new Date().toISOString() });
+      return false;
     }
+  },
+
+  // First-time start: enter fullscreen, reset state, and begin the timed test.
+  async enterFullscreenAndStart() {
+    await App.requestFs();
     document.getElementById("fsGate").classList.remove("active");
     App.startAssessment();
+  },
+
+  // Resume after an accidental/forced fullscreen exit mid-test.
+  // Does NOT reset the timer, answers, or the violation count already recorded.
+  async resumeFullscreen() {
+    await App.requestFs();
+    document.getElementById("fsGate").classList.remove("active");
+    // testActive was never turned off, so the timer keeps running underneath;
+    // we just close the gate and let the candidate continue where they left off.
   },
 
   // ================= ADMIN =================
